@@ -5,6 +5,8 @@
 */
 //------------------------------------------------------------------------------
 #include "SDM.h"
+
+#include <MOD-RS485-ISO.h>
 //------------------------------------------------------------------------------
 #if defined ( USE_HARDWARESERIAL )
 #if defined ( ESP8266 )
@@ -99,8 +101,7 @@ float SDM::readVal(uint16_t reg, uint8_t node) {
 
   dereSet(HIGH);                                                                //transmit to SDM  -> DE Enable, /RE Disable (for control MAX485)
 
-  delay(2);                                                                     //fix for issue (nan reading) by sjfaustino: https://github.com/reaper7/SDM_Energy_Meter/issues/7#issuecomment-272111524
-
+  delay(5);                                                                    //fix for issue (nan reading) by sjfaustino: https://github.com/reaper7/SDM_Energy_Meter/issues/7#issuecomment-272111524
   sdmSer.write(sdmarr, FRAMESIZE - 1);                                          //send 8 bytes
 
   sdmSer.flush();                                                               //clear out tx buffer
@@ -120,7 +121,6 @@ float SDM::readVal(uint16_t reg, uint8_t node) {
   if (readErr == SDM_ERR_NO_ERROR) {                                            //if no timeout...
 
     if (sdmSer.available() >= FRAMESIZE) {
-
       for(int n=0; n<FRAMESIZE; n++) {
         sdmarr[n] = sdmSer.read();
       }
@@ -138,6 +138,7 @@ float SDM::readVal(uint16_t reg, uint8_t node) {
 
       } else {
         readErr = SDM_ERR_WRONG_BYTES;                                          //err debug (2)
+
       }
 
     } else {
@@ -223,6 +224,9 @@ void SDM::flush(unsigned long _flushtime) {
 }
 
 void SDM::dereSet(bool _state) {
+  static MOD_RS485_ISO rs;
+  rs.setControl(_state ? MOD_RS485_ISO::TX_ENABLED : MOD_RS485_ISO::RX_ENABLED);
+
   if (_dere_pin != NOT_A_PIN)
     digitalWrite(_dere_pin, _state);                                            //receive from SDM -> DE Disable, /RE Enable (for control MAX485)
 }
